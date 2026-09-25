@@ -1,0 +1,2 @@
+[build]
+  publish = "."   # Publish this folder (the base directory), never the repo root

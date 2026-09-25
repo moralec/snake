@@ -1,0 +1,2576 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐍 Serpent Swarm</title>
+    <link rel="icon" href="data:image/x-icon;base64,">
+    <link rel="shortcut icon" href="data:image/x-icon;base64,">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            margin: 0;
+            padding: 10px 0;
+            background: 
+                radial-gradient(rgba(0, 255, 100, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-color: #0a0a0a;
+            font-family: Arial, sans-serif;
+            overflow: auto;
+            box-sizing: border-box;
+        }
+        .main-layout {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            transform-origin: top center;
+            transition: transform 0.3s ease;
+        }
+        .left-sidebar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 250px;
+        }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 250px;
+        }
+        .game-container {
+            text-align: center;
+        }
+        .title-container {
+            background: linear-gradient(145deg, 
+                rgba(255, 0, 255, 0.15), 
+                rgba(150, 0, 150, 0.1), 
+                rgba(255, 0, 255, 0.05)
+            );
+            border: 2px solid #ff00ff;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 30px;
+            box-shadow: 
+                0 0 25px rgba(255, 0, 255, 0.4),
+                inset 0 0 25px rgba(255, 0, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            animation: titleBoxGlow 4s ease-in-out infinite alternate;
+        }
+        .title-container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, 
+                transparent, 
+                rgba(255, 0, 255, 0.3), 
+                transparent, 
+                rgba(255, 0, 255, 0.3), 
+                transparent
+            );
+            background-size: 400% 400%;
+            border-radius: 12px;
+            z-index: -1;
+            animation: borderFlow 8s linear infinite;
+        }
+        @keyframes titleBoxGlow {
+            from { 
+                box-shadow: 
+                    0 0 25px rgba(255, 0, 255, 0.4),
+                    inset 0 0 25px rgba(255, 0, 255, 0.1);
+            }
+            to { 
+                box-shadow: 
+                    0 0 35px rgba(255, 0, 255, 0.6),
+                    inset 0 0 35px rgba(255, 0, 255, 0.15);
+            }
+        }
+        @keyframes borderFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .game-title {
+            font-family: monospace;
+            font-size: 40px;
+            font-weight: 600;
+            color: #00ff88;
+            margin: 0;
+            text-shadow: none;
+            letter-spacing: 2px;
+            position: relative;
+        }
+        .game-canvas-container {
+            position: relative;
+            border: 2px solid #00ff88;
+            border-radius: 8px;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 136, 0.3),
+                inset 0 0 20px rgba(0, 255, 136, 0.1);
+        }
+        canvas {
+            background-color: #0d0d0d;
+            display: block;
+            border-radius: 6px;
+            touch-action: none;
+        }
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: linear-gradient(
+                transparent 50%, 
+                rgba(0, 255, 136, 0.03) 50%
+            );
+            background-size: 100% 4px;
+            border-radius: 6px;
+        }
+        .score {
+            font-family: monospace;
+            color: #00ffff;
+            font-size: 14px;
+            margin-bottom: 20px;
+            background: linear-gradient(145deg, rgba(0, 255, 255, 0.05), rgba(0, 255, 255, 0.02));
+            border: 1px solid #00ffff;
+            border-radius: 8px;
+            padding: 15px;
+            box-sizing: border-box;
+            text-align: left;
+            line-height: 1.4;
+            width: 100%;
+            height: 140px;
+            box-shadow: 
+                0 0 15px rgba(0, 255, 255, 0.3),
+                inset 0 0 15px rgba(0, 255, 255, 0.1);
+        }
+        .score h3 {
+            font-family: monospace;
+            color: #00ffff;
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            text-shadow: 0 0 6px rgba(0, 255, 255, 0.64);
+            font-weight: 600;
+        }
+        .score span {
+            color: #ccc;
+            font-family: monospace;
+        }
+        .game-over {
+            color: #ff0000;
+            font-size: 32px;
+            margin-top: 10px;
+        }
+        .unified-message {
+            font-family: monospace;
+            font-size: 20px;
+            font-weight: 500;
+            color: #ff00ff;
+            margin: 20px 0;
+            text-align: center;
+            text-shadow: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+        .version {
+            color: #666;
+            font-size: 10px;
+            font-family: monospace;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .high-scores {
+            font-family: monospace;
+            color: #ffff00;
+            font-size: 14px;
+            width: 100%;
+            text-align: left;
+            margin-bottom: 20px;
+            background: linear-gradient(145deg, rgba(255, 255, 0, 0.05), rgba(255, 255, 0, 0.02));
+            border: 1px solid #ffff00;
+            border-radius: 8px;
+            padding: 15px;
+            box-sizing: border-box;
+            height: 180px;
+            overflow: hidden;
+            box-shadow: 
+                0 0 15px rgba(255, 255, 0, 0.3),
+                inset 0 0 15px rgba(255, 255, 0, 0.1);
+        }
+        .high-scores h3 {
+            font-family: monospace;
+            color: #ffff00;
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            text-shadow: 0 0 6px rgba(255, 255, 0, 0.64);
+            font-weight: 600;
+        }
+        .high-score-entry {
+            margin: 5px 0;
+            font-family: monospace;
+            line-height: 1.4;
+            color: #ccc;
+        }
+        .name-entry {
+            color: #ff6600;
+            margin: 20px 0;
+            font-size: 18px;
+            background: linear-gradient(145deg, rgba(255, 102, 0, 0.05), rgba(255, 102, 0, 0.02));
+            border: 1px solid #ff6600;
+            border-radius: 8px;
+            padding: 15px;
+            box-sizing: border-box;
+            text-align: center;
+            line-height: 1.4;
+            box-shadow: 
+                0 0 15px rgba(255, 102, 0, 0.3),
+                inset 0 0 15px rgba(255, 102, 0, 0.1);
+        }
+        .name-input {
+            font-family: monospace;
+            font-size: 24px;
+            color: #ff6600;
+            margin: 10px 0;
+            letter-spacing: 4px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+        }
+        .cursor {
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        .tips {
+            font-family: monospace;
+            color: #00ff88;
+            font-size: 14px;
+            width: 100%;
+            text-align: left;
+            margin-bottom: 20px;
+            background: linear-gradient(145deg, rgba(0, 255, 136, 0.05), rgba(0, 255, 136, 0.02));
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 15px;
+            box-sizing: border-box;
+            height: 140px;
+            overflow: hidden;
+            box-shadow: 
+                0 0 15px rgba(0, 255, 136, 0.3),
+                inset 0 0 15px rgba(0, 255, 136, 0.1);
+        }
+        .tips h3 {
+            font-family: monospace;
+            color: #00ff88;
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            text-shadow: 0 0 6px rgba(0, 255, 136, 0.64);
+            font-weight: 600;
+        }
+        .tip-content {
+            line-height: 1.4;
+            color: #ccc;
+            font-family: monospace;
+        }
+        .legend {
+            font-family: monospace;
+            color: #ffaa00;
+            font-size: 14px;
+            width: 100%;
+            text-align: left;
+            margin-bottom: 20px;
+            background: linear-gradient(145deg, rgba(255, 170, 0, 0.05), rgba(255, 170, 0, 0.02));
+            border: 1px solid #ffaa00;
+            border-radius: 8px;
+            padding: 15px;
+            box-sizing: border-box;
+            height: 180px;
+            box-shadow: 
+                0 0 15px rgba(255, 170, 0, 0.3),
+                inset 0 0 15px rgba(255, 170, 0, 0.1);
+        }
+        .legend h3 {
+            font-family: monospace;
+            color: #ffaa00;
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            text-shadow: 0 0 6px rgba(255, 170, 0, 0.64);
+            font-weight: 600;
+        }
+        .legend-content {
+            line-height: 1.4;
+            color: #ccc;
+            font-family: monospace;
+            text-transform: uppercase;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .legend-square {
+            width: 14px;
+            height: 14px;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .legend-circle {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .legend-diamond {
+            width: 14px;
+            height: 14px;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background-color: transparent;
+        }
+        .legend-diamond::before {
+            content: '';
+            width: 10px;
+            height: 10px;
+            transform: rotate(45deg);
+            position: absolute;
+        }
+        .legend-snake { background-color: #0f0; }
+        .legend-food { background-color: #f00; }
+        .legend-special { background-color: #ffff00; }
+        .legend-ice { background-color: #00ffff; }
+        .legend-monster::before { background-color: #800080; }
+        
+        .level-announcement {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: monospace;
+            font-size: 72px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 
+                0 0 20px rgba(255, 255, 255, 0.8),
+                0 0 40px rgba(255, 255, 255, 0.6),
+                0 0 60px rgba(255, 255, 255, 0.4);
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            animation: levelAnnounce 2s ease-out forwards;
+        }
+        
+        @keyframes levelAnnounce {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            20% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            40% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        <div class="left-sidebar">
+            <div class="tips" id="tips" style="display: none;">
+                <h3>💡 TIP</h3>
+                <div class="tip-content" id="tipContent"></div>
+            </div>
+            <div class="legend" id="legend">
+                <h3>🎨 LEGEND</h3>
+                <div class="legend-content">
+                    <div class="legend-item">
+                        <div class="legend-square legend-snake"></div>
+                        <span>Snake</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-circle legend-food"></div>
+                        <span>Red Apple</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-circle legend-special"></div>
+                        <span>Yellow Apple</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-circle legend-ice"></div>
+                        <span>ICE Apple</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-diamond legend-monster"></div>
+                        <span>Monsters</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="game-container">
+            <div class="title-container">
+                <h1 class="game-title">🐍 Serpent Swarm</h1>
+            </div>
+            <div class="unified-message" id="unifiedMessage">Press any key to start...</div>
+            <div class="game-canvas-container">
+                <canvas id="gameCanvas" width="800" height="800"></canvas>
+                <div class="scanlines"></div>
+                <div id="levelAnnouncement" class="level-announcement" style="display: none;"></div>
+            </div>
+            <div class="version" id="versionDisplay">
+                Level 1<br>
+                <!-- Version will be set by JavaScript -->
+            </div>
+        </div>
+        <div class="sidebar">
+            <div class="score">
+                <h3>📊 SCORE</h3>
+                <br>
+                ⏱️ Time: <span id="timeDisplay">0.00s</span><br>
+                🍎 Food: <span id="foodScore">0</span> pts<br>
+                🏆 Total: <span id="totalScore">0</span> pts
+            </div>
+            <div class="high-scores" id="highScores" style="display: none;">
+                <h3>🏆 HIGH SCORES</h3>
+                <div id="highScoresList"></div>
+            </div>
+            <div class="name-entry" id="nameEntryDiv" style="display: none;">
+                <div>🎉 NEW HIGH SCORE! 🎉</div>
+                <div>✨ Enter your name:</div>
+                <div class="name-input" id="nameInput">______</div>
+                <div>⌨️ Type 1-6 letters, Enter to confirm</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Documentation moved to GAME_DOCUMENTATION.txt
+        
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const unifiedMessageElement = document.getElementById('unifiedMessage');
+
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+
+        // Touch input configuration
+        const TOUCH_CONFIG = {
+            SWIPE_MIN_DISTANCE: 24   // Pixels before a gesture counts as a swipe
+        };
+
+        // Monster behaviour configuration
+        const MONSTER_CONFIG = {
+            FAST_WAVE_FRACTION: 0.5,      // The last half of each wave runs at FAST speed
+            FIRST_WAVE_SIZE: 2,           // Monsters in the first swarm
+            DOUBLE_UNTIL: 16,             // Waves double up to this count
+            WAVE_GROWTH_AFTER: 8,         // Then each wave adds this many instead
+            NORMAL_MOVE_TICKS: 3,         // Ticks between moves at normal speed
+            FAST_MOVE_TICKS: 2,           // Ticks between moves in the FAST phase
+            FROZEN_MOVE_TICKS: 8,         // Ticks between moves while frozen
+            DIRECTION_CHANGE_CHANCE: 0.3, // Chance per move that a monster re-rolls direction
+            WAVE_BASE_INTERVAL: 35000,    // Wave interval before level scaling
+            WAVE_INTERVAL_STEP: 5000,     // Removed from the interval per level
+            WAVE_MIN_INTERVAL: 10000      // Interval floor
+        };
+
+        // Food spawning configuration
+        const FOOD_CONFIG = {
+            YELLOW_SPAWN_CHANCE: 0.005, // Per-tick chance to offer the yellow apple
+            YELLOW_MIN_DURATION: 2000,  // Yellow apple lifetime range
+            YELLOW_MAX_DURATION: 6000,
+            ICE_SPAWN_CHANCE: 0.02,     // Per-tick chance to offer the ICE apple
+            ICE_MIN_MONSTERS: 16,       // Monster count that unlocks ICE apples
+            ICE_DURATION: 10000         // ICE apple lifetime
+        };
+
+        // Flash effect configuration
+        const FLASH_CONFIG = {
+            WHITE_DURATION: 240,   // Damage flash
+            GOLD_DURATION: 720     // Level-up flash and announcement delay
+        };
+
+        // Layout scaling configuration
+        const SCALE_CONFIG = {
+            WIDTH_BUFFER: 20,        // Viewport width held back from the layout
+            HEIGHT_BUFFER: 30,       // Viewport height held back from the layout
+            BODY_HEIGHT_BUFFER: 20,  // Extra body height beyond the scaled layout
+            BODY_VIEWPORT_MARGIN: 5  // Minimum gap between body and viewport
+        };
+
+        // Logging configuration - verbose internals stay silent unless explicitly enabled
+        const LOG_CONFIG = {
+            DEBUG: false
+        };
+
+        function debugLog(...args) {
+            if (LOG_CONFIG.DEBUG) console.log(...args);
+        }
+
+        // ===========================================
+        // RESPONSIVE SCALING SYSTEM
+        // ===========================================
+        
+        function updateGameScale() {
+            const mainLayout = document.querySelector('.main-layout');
+            const body = document.body;
+            
+            // Measure the real layout; the transform does not affect layout size
+            const totalWidth = mainLayout.offsetWidth || canvas.width;
+            const totalHeight = mainLayout.offsetHeight || canvas.height;
+            
+            // Get available space with buffer to prevent scrollbars
+            const availableWidth = window.innerWidth - SCALE_CONFIG.WIDTH_BUFFER;
+            const availableHeight = window.innerHeight - SCALE_CONFIG.HEIGHT_BUFFER;
+            
+            // Calculate scale factors for both dimensions
+            const scaleX = availableWidth / totalWidth;
+            const scaleY = availableHeight / totalHeight;
+            
+            // Use the most restrictive scale and cap at 1.0
+            const scale = Math.min(scaleX, scaleY, 1.0);
+            
+            // Calculate actual scaled dimensions
+            const scaledHeight = totalHeight * scale;
+            
+            // Apply scaling
+            mainLayout.style.transform = `scale(${scale})`;
+            
+            // Adjust body to fit scaled content with buffer
+            let actualBodyHeight;
+            if (scale < 1.0) {
+                // Ensure body height stays well within viewport bounds
+                actualBodyHeight = Math.min(scaledHeight + SCALE_CONFIG.BODY_HEIGHT_BUFFER, window.innerHeight - SCALE_CONFIG.BODY_VIEWPORT_MARGIN);
+                body.style.height = `${actualBodyHeight}px`;
+                body.style.minHeight = 'unset';
+                body.style.alignItems = 'flex-start';
+            } else {
+                actualBodyHeight = window.innerHeight;
+                body.style.height = '100vh';
+                body.style.minHeight = '100vh'; 
+                body.style.alignItems = 'center';
+            }
+            
+            // Debug info for development
+            if (scale < 1.0) {
+                debugLog(`[SCALING] Screen: ${window.innerWidth}x${window.innerHeight}, Required: ${totalWidth}x${totalHeight}, Scale: ${scale.toFixed(2)}, Body Height: ${actualBodyHeight}px`);
+            }
+        }
+        
+        // Update scale on load and resize
+        window.addEventListener('load', updateGameScale);
+        window.addEventListener('resize', updateGameScale);
+        updateGameScale();
+
+        // ===========================================
+        // GAME STATE VARIABLES
+        // ===========================================
+        
+        // Game version - single source of truth for version number
+        const GAME_VERSION = 'v1.290825';
+        
+        // Portal threshold configuration - single source of truth for level progression
+        const PORTAL_CONFIG = {
+            BASE_THRESHOLD: 35000,     // Level 1: 35k
+            BASE_INCREMENT: 35000,     // Base increment amount
+            INCREMENT_STEP: 10000,     // Increment growth per level (+10k each level)
+            DURATION: 15000,           // Time to reach the gateway
+            WARNING_AT: 5000           // Countdown at which the warning is logged
+        };
+        
+        // Scoring configuration - single source of truth for all point values
+        const SCORING_CONFIG = {
+            RED_APPLE: 500,                    // Red apple points
+            YELLOW_APPLE_PER_SEGMENT: 500,    // Yellow apple points per segment added
+            ICE_APPLE: 1000,                  // ICE apple flat bonus
+            TIME_POINTS_PER_SECOND: 100,      // Timer scoring rate (100 points per second)
+            MILESTONE_BONUSES: [10000, 25000, 50000, 100000, 150000, 200000] // Score milestone bonuses
+        };
+
+        // Spawn safety configuration - shared by monster swarms and portal placement
+        const SPAWN_CONFIG = {
+            SAFE_RADIUS: 5,    // Never spawn this close (Manhattan distance) to the snake
+            MAX_ATTEMPTS: 50   // Bounded retries before giving up on a free cell
+        };
+
+        // Ambient animation configuration (start screen and game-over squares)
+        const ANIMATION_CONFIG = {
+            MIN_SQUARE_SPEED: 1.0,       // Minimum movement per axis (pixels per tick)
+            START_SQUARE_COUNT: 20,      // Purple squares on the start screen
+            GAME_OVER_SQUARE_COUNT: 30   // Bouncing squares on game over
+        };
+
+        // Core game state - determines which of the 7 states we're in
+        let gameState = 'start'; // 'start'=STATE1, 'playing'=STATE2/3/4/5, 'gameOver'=STATE6, 'nameEntry'=STATE7
+        let gameRunning = true;    // Controls game logic execution (false in STATE6/7)
+        let startTime = 0;         // Timer start (0 in STATE1/2, set in STATE3+)
+        let level = 1;             // Portal progression level
+
+        // Snake (visible in STATE2-7, moving in STATE3-5)
+        let snake = [
+            {x: 10, y: 10}
+        ];
+        let dx = 0;                // Direction X (0 in STATE1/2, set by arrows in STATE3+)
+        let dy = 0;                // Direction Y (0 in STATE1/2, set by arrows in STATE3+)
+        let movementHistory = [];  // Track last 10 movements for collision debugging
+
+        // Food elements (STATE3-4 active, cleared in STATE5)
+        let food = {};                    // Red apple (visible STATE2-4, null in STATE5)
+        let specialFood = null;           // Yellow apple (spawns STATE3-4, cleared in STATE5)
+        let specialFoodTimer = 0;         // Remaining lifetime
+        let specialFoodDeadline = 0;      // Wall-clock deadline
+        let iceFood = null;               // ICE apple (spawns when 16+ monsters, cleared in STATE5)
+        let iceFoodTimer = 0;             // Remaining lifetime
+        let iceFoodDeadline = 0;          // Wall-clock deadline
+        let monstersAreFrozen = false;    // ICE apple effect active
+        let freezeTimer = 0;              // Remaining freeze time for current wave
+        let freezeDeadline = 0;           // Wall-clock deadline for the freeze effect
+
+        // Monsters (present in STATE4, cleared in STATE5)
+        let monsters = [];
+        let monsterSpawnTimer = 30000;    // Remaining time until the next wave
+        let waveDeadline = 0;             // Wall-clock deadline for the next wave (0 while paused)
+        let swarmRound = 1;
+        let monstersAreFast = false;      // Track speed state for logging
+        
+        // Calculate wave interval based on level: 30s, 25s, 20s, 15s, 10s (minimum)
+        function getWaveInterval() {
+            return Math.max(MONSTER_CONFIG.WAVE_MIN_INTERVAL, MONSTER_CONFIG.WAVE_BASE_INTERVAL - (level * MONSTER_CONFIG.WAVE_INTERVAL_STEP));
+        }
+
+        // Portal (visible only in STATE5)
+        let portal = null;
+        let portalTimer = 0;              // Remaining time to enter the portal
+        let portalDeadline = 0;           // Wall-clock deadline for portal entry
+        let portalWarningShown = false;   // Whether the 5-second warning has been logged
+
+        // Visual effects
+        let flashEffect = false;          // Flash effect (STATE4 tail cuts)
+        let flashTimer = 0;
+        let flashDeadline = 0;            // Wall-clock deadline for the flash effect
+        let flashType = 'white';          // 'white' for damage, 'gold' for level-up
+        
+        // Animations
+        let gameOverAnimation = false;    // Bouncing squares (STATE6)
+        let animatedSquares = [];
+        let startAnimation = true;        // Purple squares (STATE1)
+        let startSquares = [];
+
+        // Scoring (active STATE3+)
+        let timeScore = 0;
+        let timeScoreBase = 0; // Time score banked when the current level began
+        let foodScore = 0;
+        let totalScore = 0;
+        let levelStartScore = 0; // totalScore banked when the current level began
+        let lastMilestone = 0; // Track score milestones for logging
+
+        // High score system (STATE6/7)
+        let highScores = [];
+        let nameEntry = '';               // Name being typed (STATE7)
+
+        // Tips system (all states except STATE7)
+        let currentTip = '';
+        
+        // ===========================================
+        // SOUND SYSTEM - Arcade Style (all states)
+        // ===========================================
+        let audioContext = null;
+        
+        function initAudio() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // iOS Safari requires user gesture to resume audio context
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume().then(() => {
+                            console.log('[SOUND] Audio context resumed for iOS/Safari compatibility');
+                        }).catch(e => {
+                            console.log('[SOUND] Could not resume audio context:', e);
+                        });
+                    } else {
+                        console.log('[SOUND] Audio system initialized - Web Audio API ready');
+                    }
+                } catch(e) {
+                    console.log('[SOUND] Web Audio API not supported - game will run silently');
+                    audioContext = null; // Ensure it's null if failed
+                }
+            }
+        }
+        
+        function playSound(frequency, duration, type = 'square', volume = 0.1) {
+            if (!audioContext) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.type = type;
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+        
+        function playMoveSound() {
+            playSound(220, 0.05, 'square', 0.05); // Subtle tick
+        }
+        
+        function playEatSound() {
+            playSound(440, 0.1, 'square', 0.15); // Classic blip
+        }
+        
+        function playBonusSound() {
+            // Multi-tone reward sound
+            playSound(523, 0.1, 'square', 0.2);  // C5
+            setTimeout(() => playSound(659, 0.1, 'square', 0.2), 50); // E5
+            setTimeout(() => playSound(784, 0.15, 'square', 0.2), 100); // G5
+        }
+        
+        function playCutSound() {
+            if (!gameRunning) {
+                debugLog('[SOUND] Ignoring cut sound - game not running');
+                return;
+            }
+            playSound(150, 0.2, 'sawtooth', 0.3); // Brief buzz
+        }
+        
+        function playDeathSound() {
+            // Classic arcade death scale - descending notes like Pac-Man
+            const notes = [523, 493, 440, 415, 370, 330, 294, 262]; // C5 down to C4
+            const noteDuration = 0.2;
+            const noteGap = 0.05;
+            
+            if (!audioContext) return;
+            
+            notes.forEach((frequency, index) => {
+                setTimeout(() => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.type = 'square';
+                    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+                    
+                    gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + noteDuration);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + noteDuration);
+                }, index * (noteDuration + noteGap) * 1000);
+            });
+        }
+        
+        function playMonsterSpawnSound() {
+            // Ominous monster spawn sound - low rumbling bass with rising alarm
+            playSound(110, 0.3, 'sawtooth', 0.25); // Low rumble
+            setTimeout(() => playSound(165, 0.2, 'triangle', 0.2), 100); // Rising alarm
+            setTimeout(() => playSound(220, 0.15, 'square', 0.15), 200); // Sharp alert
+        }
+        
+        function playPortalSound() {
+            // Magical portal sound - ascending mystical tones
+            playSound(330, 0.2, 'sine', 0.2);  // E4
+            setTimeout(() => playSound(415, 0.2, 'sine', 0.2), 100); // G#4
+            setTimeout(() => playSound(523, 0.3, 'sine', 0.25), 200); // C5
+            setTimeout(() => playSound(659, 0.4, 'sine', 0.3), 300); // E5
+        }
+        
+        function playLevelUpSound() {
+            // Epic level-up fanfare - triumphant ascending chord progression
+            // Play major chord progression: C-E-G, F-A-C, G-B-D, C-E-G (octave higher)
+            
+            // First chord: C Major (C-E-G)
+            playSound(262, 0.4, 'sine', 0.25); // C4
+            playSound(330, 0.4, 'sine', 0.2);  // E4
+            playSound(392, 0.4, 'sine', 0.2);  // G4
+            
+            // Second chord: F Major (F-A-C) 
+            setTimeout(() => {
+                playSound(349, 0.4, 'sine', 0.25); // F4
+                playSound(440, 0.4, 'sine', 0.2);  // A4
+                playSound(523, 0.4, 'sine', 0.2);  // C5
+            }, 200);
+            
+            // Third chord: G Major (G-B-D)
+            setTimeout(() => {
+                playSound(392, 0.4, 'sine', 0.25); // G4
+                playSound(494, 0.4, 'sine', 0.2);  // B4
+                playSound(587, 0.4, 'sine', 0.2);  // D5
+            }, 400);
+            
+            // Final chord: C Major octave higher (C-E-G)
+            setTimeout(() => {
+                playSound(523, 0.6, 'sine', 0.3);  // C5
+                playSound(659, 0.6, 'sine', 0.25); // E5
+                playSound(784, 0.6, 'sine', 0.25); // G5
+                // Add a sparkle effect
+                setTimeout(() => playSound(1047, 0.3, 'sine', 0.2), 100); // C6
+            }, 600);
+        }
+
+        // ===========================================
+        // TIPS SYSTEM (visible STATE1-6, hidden STATE7)
+        // ===========================================
+        
+        // Introductory tip for first-time users (STATE1)
+        const introTip = "Welcome to Serpent Swarm! Use arrows to move, eat red food to grow, survive monster waves!";
+
+        // Tips array with educational content (STATE2-6)
+        const tips = [
+            "Snake wraps around screen edges seamlessly. Use this clever mechanic to escape tight spots!",
+            "Yellow food doubles your snake length instantly. Great reward but requires risky timing decisions!",
+            "Monsters spawn in escalating waves: 2, 4, 8, 16... Each wave doubles the difficulty!",
+            "Head collision with monsters = instant death. Body collision = tail cutting for survival!",
+            "First monster wave appears after exactly 30 seconds of movement. Use this prep time wisely!",
+            "Wave intervals get shorter each level: 30s, 25s, 20s, 15s, down to minimum 10s intervals!",
+            "White flash effects indicate monster damage to your tail. Stay alert for visual cues!",
+            "Yellow food appears randomly for 2-6 seconds before vanishing. Don't miss these bonuses!",
+            "ICE apples spawn only when 16+ monsters are present. They freeze all monsters temporarily!",
+            "ICE food lasts 10 seconds and gives +" + SCORING_CONFIG.ICE_APPLE + " bonus points. Ultimate high-risk, high-reward!",
+            "Frozen monsters move very slowly until next wave spawns. Use this strategic advantage!",
+            "Monsters can't spawn too close to your snake head initially. Safe zone protects early gameplay!",
+            "Cut tail strategy: Let monsters hit your body segments to stay nimble and avoid death traps!",
+            "Movement starts both the game timer and monster countdown. Plan your first moves carefully!",
+            "Monsters change speed during waves: normal speed early, then faster when timer hits 15s!",
+            "Time scoring: seconds played × " + SCORING_CONFIG.TIME_POINTS_PER_SECOND + " points. So surviving 85.90s equals exactly " + Math.floor(85.90 * SCORING_CONFIG.TIME_POINTS_PER_SECOND) + " points!",
+            "Red apples give +" + SCORING_CONFIG.RED_APPLE + " points each when eaten. Collect them aggressively for scoring bonuses!",
+            "Yellow apples give +" + SCORING_CONFIG.YELLOW_APPLE_PER_SEGMENT + " points per body segment added. Doubling from 5→10 gives " + (5 * SCORING_CONFIG.YELLOW_APPLE_PER_SEGMENT) + " points!",
+            "ICE apples give flat +" + SCORING_CONFIG.ICE_APPLE + " points reward. High-risk, high-reward power-up for players!",
+            "Total score combines time points plus food points. Both survival and eating matter equally!",
+            "Scoring example: 60s survival + 4 red apples + 1 yellow doubling = " + (60 * SCORING_CONFIG.TIME_POINTS_PER_SECOND + 4 * SCORING_CONFIG.RED_APPLE + 5 * SCORING_CONFIG.YELLOW_APPLE_PER_SEGMENT).toLocaleString() + " total points!",
+            "High scores use total points, not just survival time. Eat aggressively for maximum scoring!"
+        ];
+
+        // Tips Management
+        function showIntroTip() {
+            currentTip = introTip;
+            updateTipDisplay();
+        }
+
+        function selectRandomTip() {
+            const randomIndex = Math.floor(Math.random() * tips.length);
+            currentTip = tips[randomIndex];
+            updateTipDisplay();
+        }
+
+        function updateTipDisplay() {
+            const tipContent = document.getElementById('tipContent');
+            tipContent.textContent = currentTip;
+        }
+
+        // ===========================================
+        // HIGH SCORE SYSTEM (STATE6/7)
+        // ===========================================
+        
+        const HIGH_SCORE_CONFIG = {
+            KEY: 'snake_high_scores',
+            LEGACY_KEY: 'snakeHighScores',
+            MAX_ENTRIES: 5,
+            MAX_NAME_LENGTH: 6
+        };
+        
+        function readStorage(key) {
+            try {
+                return localStorage.getItem(key);
+            } catch (e) {
+                console.log('[HIGH SCORES] localStorage read failed:', e);
+                return null;
+            }
+        }
+        
+        function writeStorage(key, value) {
+            try {
+                localStorage.setItem(key, value);
+                return true;
+            } catch (e) {
+                console.log('[HIGH SCORES] localStorage write failed:', e);
+                return false;
+            }
+        }
+        
+        function removeStorage(key) {
+            try {
+                localStorage.removeItem(key);
+            } catch (e) {
+                console.log('[HIGH SCORES] localStorage remove failed:', e);
+            }
+        }
+        
+        // Accept only {name: string, score: finite number}; convert the old time-based format
+        function sanitizeHighScores(payload) {
+            if (!Array.isArray(payload)) return null;
+            const entries = [];
+            for (const entry of payload) {
+                if (!entry || typeof entry !== 'object') continue;
+                let score = Number.isFinite(entry.score) ? entry.score
+                    : Number.isFinite(entry.time) ? Math.floor(entry.time * SCORING_CONFIG.TIME_POINTS_PER_SECOND)
+                    : null;
+                if (typeof entry.name !== 'string' || score === null) continue;
+                entries.push({ name: entry.name, score: score });
+            }
+            entries.sort((a, b) => b.score - a.score);
+            return entries.slice(0, HIGH_SCORE_CONFIG.MAX_ENTRIES);
+        }
+        
+        function loadHighScores() {
+            let saved = readStorage(HIGH_SCORE_CONFIG.KEY);
+            let legacy = false;
+            if (saved === null) {
+                saved = readStorage(HIGH_SCORE_CONFIG.LEGACY_KEY);
+                legacy = saved !== null;
+            }
+            
+            let parsed = null;
+            if (saved !== null) {
+                try {
+                    parsed = JSON.parse(saved);
+                } catch (e) {
+                    console.log('[HIGH SCORES] Parse error, resetting to defaults');
+                }
+            }
+            
+            const scores = parsed === null ? null : sanitizeHighScores(parsed);
+            if (scores === null || scores.length === 0) {
+                console.log('[HIGH SCORES] No usable saved data, using defaults');
+                if (legacy) removeStorage(HIGH_SCORE_CONFIG.LEGACY_KEY);
+                resetHighScores();
+                return;
+            }
+            
+            highScores = scores;
+            if (legacy) {
+                console.log('[HIGH SCORES] Migrated legacy high scores to', HIGH_SCORE_CONFIG.KEY);
+                saveHighScores();
+                removeStorage(HIGH_SCORE_CONFIG.LEGACY_KEY);
+            }
+        }
+        
+        function resetHighScores() {
+            highScores = [
+                {name: 'CARLOS', score: 142500}, // Level 3+ (cleared level 3 portal)
+                {name: 'JAKA', score: 95000},   // Level 2 (cleared level 2 portal) 
+                {name: 'ALEX', score: 85000},   // Level 2 (reached level 2 portal)
+                {name: 'GAMER', score: 42000},  // Level 1 (cleared level 1 portal)
+                {name: 'SNAKE', score: 28000}   // Level 1 (close to level 1 portal)
+            ];
+            saveHighScores();
+        }
+
+        function saveHighScores() {
+            if (writeStorage(HIGH_SCORE_CONFIG.KEY, JSON.stringify(highScores))) {
+                console.log('[HIGH SCORES] Saved', highScores.length, 'entries to', HIGH_SCORE_CONFIG.KEY);
+            }
+        }
+
+        function checkHighScore(score) {
+            debugLog('[STATE6→7] Checking score:', score, 'against high scores:', highScores);
+            if (highScores.length < HIGH_SCORE_CONFIG.MAX_ENTRIES) return true;
+            
+            // Find the lowest score in the list
+            let lowestScore = Math.min(...highScores.map(entry => entry.score));
+            debugLog('[STATE6→7] Current lowest score:', lowestScore);
+            return score >= lowestScore;
+        }
+
+        function addHighScore(name, score) {
+            debugLog('[STATE7→6] Adding high score:', name, score);
+            const entry = {name: name, score: score};
+            const insertAt = highScores.findIndex(existing => score >= existing.score);
+            if (insertAt === -1) {
+                highScores.push(entry);
+            } else {
+                highScores.splice(insertAt, 0, entry); // A tie beats the older entry with the same score
+            }
+            highScores = highScores.slice(0, HIGH_SCORE_CONFIG.MAX_ENTRIES);
+            debugLog('[STATE7→6] Updated high scores list:', highScores);
+            saveHighScores();
+            displayHighScores(); // Refresh display immediately
+        }
+
+        function displayHighScores() {
+            debugLog('[HIGH SCORES] Displaying updated list:', highScores);
+            const highScoresList = document.getElementById('highScoresList');
+            highScoresList.replaceChildren();
+            for (let i = 0; i < highScores.length; i++) {
+                const score = highScores[i];
+                const entry = document.createElement('div');
+                entry.className = 'high-score-entry';
+                entry.textContent = `${i + 1}. ${score.name} - ${(score.score || 0).toLocaleString()}`;
+                highScoresList.appendChild(entry);
+            }
+        }
+
+        function updateNameInput() {
+            const nameInput = document.getElementById('nameInput');
+            let display = '';
+            
+            // Show the current name
+            const characters = [...nameEntry];
+            for (const character of characters) {
+                display += character;
+            }
+            
+            // Show cursor if there's room for more characters
+            if (characters.length < HIGH_SCORE_CONFIG.MAX_NAME_LENGTH) {
+                display += '<span class="cursor">_</span>';
+            }
+            
+            nameInput.innerHTML = display || '<span class="cursor">_</span>';
+        }
+
+        // ===========================================
+        // FOOD SYSTEM (STATE2-4 active, cleared STATE5)
+        // ===========================================
+        
+        // A cell is blocked if any active item or the snake already occupies it
+        function isCellOccupied(x, y) {
+            for (const segment of snake) {
+                if (segment.x === x && segment.y === y) return true;
+            }
+            for (const monster of monsters) {
+                if (monster.x === x && monster.y === y) return true;
+            }
+            if (specialFood && specialFood.x === x && specialFood.y === y) return true;
+            if (iceFood && iceFood.x === x && iceFood.y === y) return true;
+            return false;
+        }
+        
+        // Generate red apple (STATE2-4, not during portal STATE5)
+        function generateFood() {
+            for (let attempt = 0; attempt < SPAWN_CONFIG.MAX_ATTEMPTS; attempt++) {
+                const x = Math.floor(Math.random() * tileCount);
+                const y = Math.floor(Math.random() * tileCount);
+                if (!isCellOccupied(x, y)) {
+                    food = { x: x, y: y };
+                    return;
+                }
+            }
+            food = null; // Board is effectively full - leave it empty rather than stack items
+        }
+
+        // ===========================================
+        // MONSTER SYSTEM (STATE4 only, cleared STATE5)
+        // ===========================================
+        
+        // Waves double up to the cap, then grow linearly so late levels stay playable
+        function getWaveSpawnCount() {
+            if (monsters.length === 0) return MONSTER_CONFIG.FIRST_WAVE_SIZE;
+            if (monsters.length < MONSTER_CONFIG.DOUBLE_UNTIL) return monsters.length;
+            return MONSTER_CONFIG.WAVE_GROWTH_AFTER;
+        }
+        
+        // Spawn monster wave (STATE3→4 transition, ongoing in STATE4)
+        function spawnMonsterSwarm() {
+            let monstersToSpawn = getWaveSpawnCount();
+            console.log('[MONSTERS] Wave', swarmRound, '- spawning', monstersToSpawn, 'monsters (total will be:', monsters.length + monstersToSpawn + ')');
+            
+            for (let i = 0; i < monstersToSpawn; i++) {
+                let monster = {
+                    x: Math.floor(Math.random() * tileCount),
+                    y: Math.floor(Math.random() * tileCount),
+                    dx: Math.random() > 0.5 ? 1 : -1,
+                    dy: Math.random() > 0.5 ? 1 : -1,
+                    moveCounter: 0
+                };
+                
+                let tooClose = true;
+                let attempts = 0;
+                while (tooClose && attempts < SPAWN_CONFIG.MAX_ATTEMPTS) {
+                    tooClose = false;
+                    for (let segment of snake) {
+                        let distance = Math.abs(monster.x - segment.x) + Math.abs(monster.y - segment.y);
+                        if (distance < SPAWN_CONFIG.SAFE_RADIUS) {
+                            tooClose = true;
+                            monster.x = Math.floor(Math.random() * tileCount);
+                            monster.y = Math.floor(Math.random() * tileCount);
+                            break;
+                        }
+                    }
+                    for (let existingMonster of monsters) {
+                        if (monster.x === existingMonster.x && monster.y === existingMonster.y) {
+                            tooClose = true;
+                            monster.x = Math.floor(Math.random() * tileCount);
+                            monster.y = Math.floor(Math.random() * tileCount);
+                            break;
+                        }
+                    }
+                    if (food && monster.x === food.x && monster.y === food.y) {
+                        tooClose = true;
+                        monster.x = Math.floor(Math.random() * tileCount);
+                        monster.y = Math.floor(Math.random() * tileCount);
+                    }
+                    if (specialFood && monster.x === specialFood.x && monster.y === specialFood.y) {
+                        tooClose = true;
+                        monster.x = Math.floor(Math.random() * tileCount);
+                        monster.y = Math.floor(Math.random() * tileCount);
+                    }
+                    if (iceFood && monster.x === iceFood.x && monster.y === iceFood.y) {
+                        tooClose = true;
+                        monster.x = Math.floor(Math.random() * tileCount);
+                        monster.y = Math.floor(Math.random() * tileCount);
+                    }
+                    attempts++;
+                }
+                
+                monsters.push(monster);
+            }
+            
+            if (gameRunning) {
+                playMonsterSpawnSound();
+            }
+            
+            // Wave timing based on level: 30s, 25s, 20s, 15s, 10s (minimum)
+            monsterSpawnTimer = getWaveInterval();
+            waveDeadline = Date.now() + monsterSpawnTimer;
+            
+            // Clear freeze effect when new wave spawns (each wave starts fresh)
+            monstersAreFrozen = false;
+            freezeTimer = 0;
+            monstersAreFast = false; // Reset speed state for new wave
+            
+            swarmRound++;
+            console.log('[MONSTERS] Wave', (swarmRound - 1), 'complete - total monsters:', monsters.length, 'next wave in:', Math.ceil(getWaveInterval()/1000) + 's');
+        }
+
+        function prefersReducedMotion() {
+            try {
+                return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            } catch (e) {
+                return false;
+            }
+        }
+        
+        function triggerFlash(type = 'white') {
+            if (!gameRunning && type !== 'gold') {
+                debugLog('[STATE4] Ignoring flash trigger - game not running');
+                return;
+            }
+            if (prefersReducedMotion()) {
+                console.log('[FLASH] Skipping full-canvas flash (prefers-reduced-motion)');
+                return;
+            }
+            console.log('[FLASH] Triggering flash effect:', type);
+            flashEffect = true;
+            flashType = type;
+            flashTimer = type === 'gold' ? FLASH_CONFIG.GOLD_DURATION : FLASH_CONFIG.WHITE_DURATION;
+            flashDeadline = Date.now() + flashTimer;
+        }
+        
+        function triggerLevelUpFlash() {
+            if (prefersReducedMotion()) {
+                console.log('[FLASH] Skipping full-canvas flash (prefers-reduced-motion)');
+                return;
+            }
+            console.log('[LEVEL UP] Triggering golden level-up flash');
+            flashEffect = true;
+            flashType = 'gold';
+            flashTimer = FLASH_CONFIG.GOLD_DURATION;
+            flashDeadline = Date.now() + flashTimer;
+        }
+        
+        // Level Announcement System - displays epic "LEVEL X" overlay after portal entry
+        function triggerLevelAnnouncement(levelNum) {
+            console.log('[LEVEL UP] Showing level announcement for level', levelNum);
+            const announcement = document.getElementById('levelAnnouncement');
+            announcement.textContent = `LEVEL ${levelNum}`;
+            announcement.style.display = 'block';
+            announcement.style.animation = 'none'; // Reset animation to restart it
+            
+            // Force reflow to ensure animation reset takes effect
+            announcement.offsetHeight;
+            announcement.style.animation = 'levelAnnounce 2s ease-out forwards';
+            
+            // Hide element after 2s animation completes
+            setTimeout(() => {
+                announcement.style.display = 'none';
+            }, 2000);
+        }
+
+        function updateFlash() {
+            if (flashEffect) {
+                flashTimer = flashDeadline - Date.now();
+                debugLog('[FLASH] Timer:', flashTimer, 'Type:', flashType, 'gameRunning:', gameRunning, 'gameState:', gameState);
+                if (flashTimer <= 0 || (!gameRunning && flashType !== 'gold')) {
+                    debugLog('[FLASH] Clearing flash effect');
+                    flashEffect = false;
+                    flashTimer = 0;
+                    flashDeadline = 0;
+                    flashType = 'white'; // Reset to default
+                }
+            }
+        }
+
+        // ===========================================
+        // PORTAL SYSTEM (STATE4→5 transition, active STATE5)
+        // ===========================================
+        
+        // Calculate portal threshold for any level using global config
+        function getPortalThreshold(level) {
+            if (level === 1) return PORTAL_CONFIG.BASE_THRESHOLD;
+            
+            let threshold = PORTAL_CONFIG.BASE_THRESHOLD;
+            for (let i = 2; i <= level; i++) {
+                const increment = PORTAL_CONFIG.BASE_INCREMENT + (i - 1) * PORTAL_CONFIG.INCREMENT_STEP;
+                threshold += increment;
+            }
+            return threshold;
+        }
+        
+        // Check if score threshold reached for portal (STATE4→5)
+        function checkPortalActivation() {
+            const previousThreshold = level === 1 ? 0 : getPortalThreshold(level - 1);
+            const levelTarget = getPortalThreshold(level) - previousThreshold;
+            const earnedThisLevel = totalScore - levelStartScore;
+            
+            if (!portal && earnedThisLevel >= levelTarget) {
+                console.log('[PORTAL] Threshold reached! Earned', earnedThisLevel, 'of', levelTarget, 'this level - activating portal for level', level + 1);
+                activatePortal();
+            }
+        }
+        
+        // Minimum Manhattan distance from any snake segment to one of the four portal walls
+        function getPortalSideDistance(side) {
+            let minDistance = Infinity;
+            for (const segment of snake) {
+                let distance;
+                if (side === 0) distance = segment.y;                        // top
+                else if (side === 1) distance = (tileCount - 1) - segment.x; // right
+                else if (side === 2) distance = (tileCount - 1) - segment.y; // bottom
+                else distance = segment.x;                                   // left
+                if (distance < minDistance) minDistance = distance;
+            }
+            return minDistance;
+        }
+        
+        // Pick a wall that keeps the safe radius from the snake; if every wall is close, take the farthest
+        function choosePortalSide() {
+            const safeSides = [0, 1, 2, 3].filter(side => getPortalSideDistance(side) >= SPAWN_CONFIG.SAFE_RADIUS);
+            if (safeSides.length > 0) {
+                return safeSides[Math.floor(Math.random() * safeSides.length)];
+            }
+            let farthest = 0;
+            for (let side = 1; side < 4; side++) {
+                if (getPortalSideDistance(side) > getPortalSideDistance(farthest)) farthest = side;
+            }
+            return farthest;
+        }
+        
+        // Activate portal (STATE4→5 transition)
+        function activatePortal() {
+            // STATE5: Clear all monsters
+            monsters = [];
+            
+            // STATE5: Clear all food to prevent distractions during portal phase
+            food = null; // Clear regular red apple
+            specialFood = null; // Clear yellow apple
+            specialFoodTimer = 0;
+            specialFoodDeadline = 0;
+            iceFood = null; // Clear ICE apple
+            iceFoodTimer = 0;
+            iceFoodDeadline = 0;
+            monstersAreFrozen = false; // Clear freeze effect
+            freezeTimer = 0;
+            freezeDeadline = 0;
+            waveDeadline = 0; // The wave clock is frozen while the portal is open
+            
+            // Create portal wall with 4-block gateway, away from the snake
+            const side = choosePortalSide(); // 0=top, 1=right, 2=bottom, 3=left
+            let wallBlocks = [];
+            let gatewayBlocks = [];
+            
+            switch(side) {
+                case 0: // top wall
+                    {
+                        let gatewayStart = Math.floor(Math.random() * (tileCount - 6)) + 3; // Leave space for 4-block gateway
+                        // Create full wall
+                        for (let x = 0; x < tileCount; x++) {
+                            wallBlocks.push({x: x, y: 0});
+                        }
+                        // Mark gateway positions (snake can pass through these)
+                        for (let i = 0; i < 4; i++) {
+                            gatewayBlocks.push({x: gatewayStart + i, y: 0});
+                        }
+                    }
+                    break;
+                case 1: // right wall
+                    {
+                        let gatewayStart = Math.floor(Math.random() * (tileCount - 6)) + 3; // Leave space for 4-block gateway
+                        // Create full wall
+                        for (let y = 0; y < tileCount; y++) {
+                            wallBlocks.push({x: tileCount - 1, y: y});
+                        }
+                        // Mark gateway positions
+                        for (let i = 0; i < 4; i++) {
+                            gatewayBlocks.push({x: tileCount - 1, y: gatewayStart + i});
+                        }
+                    }
+                    break;
+                case 2: // bottom wall
+                    {
+                        let gatewayStart = Math.floor(Math.random() * (tileCount - 6)) + 3; // Leave space for 4-block gateway
+                        // Create full wall
+                        for (let x = 0; x < tileCount; x++) {
+                            wallBlocks.push({x: x, y: tileCount - 1});
+                        }
+                        // Mark gateway positions
+                        for (let i = 0; i < 4; i++) {
+                            gatewayBlocks.push({x: gatewayStart + i, y: tileCount - 1});
+                        }
+                    }
+                    break;
+                case 3: // left wall
+                    {
+                        let gatewayStart = Math.floor(Math.random() * (tileCount - 6)) + 3; // Leave space for 4-block gateway
+                        // Create full wall
+                        for (let y = 0; y < tileCount; y++) {
+                            wallBlocks.push({x: 0, y: y});
+                        }
+                        // Mark gateway positions
+                        for (let i = 0; i < 4; i++) {
+                            gatewayBlocks.push({x: 0, y: gatewayStart + i});
+                        }
+                    }
+                    break;
+            }
+            
+            portal = {wallBlocks: wallBlocks, gatewayBlocks: gatewayBlocks, side: side};
+            portalTimer = PORTAL_CONFIG.DURATION;
+            portalDeadline = Date.now() + portalTimer;
+            portalWarningShown = false;
+            console.log('[PORTAL] Created full wall with 4-block gateway on side', side, 'at level', level, '- 15 second countdown started');
+            playPortalSound();
+        }
+        
+        // Enter portal (STATE5→2 transition - new level)  
+        function enterPortal() {
+            console.log('[PORTAL] Successfully entered! Advancing from level', level, 'to level', level + 1);
+            
+            // Trigger epic level-up effects FIRST for maximum impact
+            playLevelUpSound();
+            triggerLevelUpFlash();
+            
+            // Advance to next level (reset to STATE2 with higher level)
+            level++;
+            levelStartScore = totalScore; // Bank the current score so the next level must be earned
+            timeScoreBase = timeScore;    // Keep banked time points across the pause
+            startTime = 0;                // STATE2: static until the first arrow key
+            dx = 0;
+            dy = 0;
+            
+            // Trigger level announcement after golden flash completes
+            setTimeout(() => {
+                triggerLevelAnnouncement(level);
+            }, FLASH_CONFIG.GOLD_DURATION);
+            portal = null;
+            portalTimer = 0;
+            portalDeadline = 0;
+            
+            // Reset monster system for new level (the wave clock restarts on first input)
+            swarmRound = 1;
+            monsterSpawnTimer = getWaveInterval();
+            waveDeadline = 0;
+            
+            // Reset special effects (but preserve level-up flash)
+            specialFood = null;
+            specialFoodTimer = 0;
+            specialFoodDeadline = 0;
+            iceFood = null;
+            iceFoodTimer = 0;
+            iceFoodDeadline = 0;
+            monstersAreFrozen = false;
+            freezeTimer = 0;
+            freezeDeadline = 0;
+            
+            // Generate new food
+            generateFood();
+            
+            console.log('[PORTAL] Level up complete! Now at level', level, 'with wave interval:', Math.ceil(getWaveInterval()/1000) + 's');
+        }
+
+        function spawnSpecialFood() {
+            if (specialFood) return; // Don't spawn if one already exists
+            
+            specialFood = {
+                x: Math.floor(Math.random() * tileCount),
+                y: Math.floor(Math.random() * tileCount)
+            };
+            
+            // Make sure it doesn't spawn on snake or regular food
+            let validPosition = false;
+            let attempts = 0;
+            while (!validPosition && attempts < SPAWN_CONFIG.MAX_ATTEMPTS) {
+                validPosition = true;
+                
+                // Check snake collision
+                for (let segment of snake) {
+                    if (segment.x === specialFood.x && segment.y === specialFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+                
+                // Check regular food collision
+                if (food && specialFood.x === food.x && specialFood.y === food.y) {
+                    validPosition = false;
+                }
+                
+                // Check ICE food collision
+                if (iceFood && specialFood.x === iceFood.x && specialFood.y === iceFood.y) {
+                    validPosition = false;
+                }
+                
+                // Check monster collision
+                for (let monster of monsters) {
+                    if (monster.x === specialFood.x && monster.y === specialFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+                
+                if (!validPosition) {
+                    specialFood.x = Math.floor(Math.random() * tileCount);
+                    specialFood.y = Math.floor(Math.random() * tileCount);
+                    attempts++;
+                }
+            }
+            
+            specialFoodTimer = FOOD_CONFIG.YELLOW_MIN_DURATION + Math.random() * (FOOD_CONFIG.YELLOW_MAX_DURATION - FOOD_CONFIG.YELLOW_MIN_DURATION);
+            specialFoodDeadline = Date.now() + specialFoodTimer;
+            console.log('[SPECIAL FOOD] Yellow apple spawned at (' + specialFood.x + ',' + specialFood.y + ') for', Math.ceil(specialFoodTimer/1000) + 's');
+        }
+
+        function spawnIceFood() {
+            if (iceFood || monsters.length < FOOD_CONFIG.ICE_MIN_MONSTERS) return; // Only when enough monsters and none exists
+            
+            iceFood = {
+                x: Math.floor(Math.random() * tileCount),
+                y: Math.floor(Math.random() * tileCount)
+            };
+            
+            // Make sure it doesn't spawn on snake, food, or monsters
+            let validPosition = false;
+            let attempts = 0;
+            while (!validPosition && attempts < SPAWN_CONFIG.MAX_ATTEMPTS) {
+                validPosition = true;
+                
+                // Check snake collision
+                for (let segment of snake) {
+                    if (segment.x === iceFood.x && segment.y === iceFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+                
+                // Check regular food collision
+                if (food && iceFood.x === food.x && iceFood.y === food.y) {
+                    validPosition = false;
+                }
+                
+                // Check special food collision
+                if (specialFood && iceFood.x === specialFood.x && iceFood.y === specialFood.y) {
+                    validPosition = false;
+                }
+                
+                // Check monster collision
+                for (let monster of monsters) {
+                    if (monster.x === iceFood.x && monster.y === iceFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+                
+                if (!validPosition) {
+                    iceFood.x = Math.floor(Math.random() * tileCount);
+                    iceFood.y = Math.floor(Math.random() * tileCount);
+                    attempts++;
+                }
+            }
+            
+            iceFoodTimer = FOOD_CONFIG.ICE_DURATION;
+            iceFoodDeadline = Date.now() + iceFoodTimer;
+            console.log('[SPECIAL FOOD] ICE apple spawned at (' + iceFood.x + ',' + iceFood.y + ') for', Math.ceil(iceFoodTimer/1000) + 's with', monsters.length, 'monsters active');
+        }
+
+        function updateSpecialFood() {
+            // Only update special food during active gameplay
+            if (!gameRunning || gameState === 'gameOver' || gameState === 'nameEntry') return;
+            
+            // Update yellow apple
+            if (specialFood) {
+                specialFoodTimer = specialFoodDeadline - Date.now();
+                if (specialFoodTimer <= 0) {
+                    console.log('[SPECIAL FOOD] Yellow apple expired');
+                    specialFood = null;
+                    specialFoodTimer = 0;
+                    specialFoodDeadline = 0;
+                }
+            } else if (!portal && startTime > 0) { // Only spawn special food if no portal is active AND game has started moving
+                if (Math.random() < FOOD_CONFIG.YELLOW_SPAWN_CHANCE) {
+                    spawnSpecialFood();
+                }
+            }
+            
+            // Update ICE apple
+            if (iceFood) {
+                iceFoodTimer = iceFoodDeadline - Date.now();
+                if (iceFoodTimer <= 0) {
+                    console.log('[SPECIAL FOOD] ICE apple expired');
+                    iceFood = null;
+                    iceFoodTimer = 0;
+                    iceFoodDeadline = 0;
+                }
+            } else if (!portal && startTime > 0 && monsters.length >= FOOD_CONFIG.ICE_MIN_MONSTERS) {
+                if (Math.random() < FOOD_CONFIG.ICE_SPAWN_CHANCE) {
+                    spawnIceFood();
+                }
+            }
+            
+            // Update freeze effect
+            if (monstersAreFrozen && freezeTimer > 0) {
+                freezeTimer = freezeDeadline - Date.now();
+                if (freezeTimer <= 0) {
+                    monstersAreFrozen = false;
+                    freezeTimer = 0;
+                    freezeDeadline = 0;
+                    console.log('[ICE EFFECT] Monsters unfrozen');
+                }
+            }
+        }
+
+        // ===========================================
+        // ANIMATION SYSTEM
+        // ===========================================
+        
+        // Create bouncing squares (STATE6)
+        function createGameOverAnimation() {
+            gameOverAnimation = true;
+            animatedSquares = [];
+            
+            // Create 30 colorful animated squares
+            for (let i = 0; i < ANIMATION_CONFIG.GAME_OVER_SQUARE_COUNT; i++) {
+                animatedSquares.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 6, // Random velocity X
+                    vy: (Math.random() - 0.5) * 6, // Random velocity Y
+                    size: Math.random() * 20 + 10, // Size between 10-30
+                    color: `hsl(${Math.random() * 360}, 80%, 60%)`, // Random bright color
+                    rotation: 0,
+                    rotationSpeed: (Math.random() - 0.5) * 0.2
+                });
+            }
+        }
+
+        // Keep ambient squares moving: lift each axis that has decayed below the floor,
+        // reflecting away from an edge the square is resting on
+        function enforceMinimumSquareSpeed(square) {
+            const min = ANIMATION_CONFIG.MIN_SQUARE_SPEED;
+            
+            if (Math.abs(square.vx) < min) {
+                square.vx = square.vx < 0 ? -min : min;
+                if (square.x <= 0 && square.vx < 0) square.vx = min;
+                if (square.x >= canvas.width && square.vx > 0) square.vx = -min;
+            }
+            
+            if (Math.abs(square.vy) < min) {
+                square.vy = square.vy < 0 ? -min : min;
+                if (square.y <= 0 && square.vy < 0) square.vy = min;
+                if (square.y >= canvas.height && square.vy > 0) square.vy = -min;
+            }
+        }
+        
+        function updateGameOverAnimation() {
+            if (!gameOverAnimation) return;
+            
+            for (let square of animatedSquares) {
+                // Update position
+                square.x += square.vx;
+                square.y += square.vy;
+                
+                // Bounce off walls
+                if (square.x <= 0 || square.x >= canvas.width) {
+                    square.vx *= -0.8; // Damping
+                    square.x = Math.max(0, Math.min(canvas.width, square.x));
+                }
+                if (square.y <= 0 || square.y >= canvas.height) {
+                    square.vy *= -0.8; // Damping
+                    square.y = Math.max(0, Math.min(canvas.height, square.y));
+                }
+                
+                // Update rotation
+                square.rotation += square.rotationSpeed;
+                
+                // Apply gravity-like effect
+                square.vy += 0.1;
+                
+                enforceMinimumSquareSpeed(square);
+                
+                // Fade effect (optional - could be used later)
+                square.alpha = square.alpha || 1;
+            }
+        }
+
+        function drawGameOverAnimation() {
+            if (!gameOverAnimation) return;
+            
+            ctx.save();
+            for (let square of animatedSquares) {
+                ctx.save();
+                ctx.translate(square.x, square.y);
+                ctx.rotate(square.rotation);
+                ctx.fillStyle = square.color;
+                ctx.fillRect(-square.size/2, -square.size/2, square.size, square.size);
+                ctx.restore();
+            }
+            ctx.restore();
+        }
+
+        function updateTimer() {
+            // Only update timer during active gameplay
+            if (!gameRunning || gameState === 'gameOver' || gameState === 'nameEntry') return;
+            if (startTime > 0) {
+                let currentTime = Date.now();
+                let elapsedTime = (currentTime - startTime) / 1000;
+                document.getElementById('timeDisplay').textContent = elapsedTime.toFixed(2) + 's';
+                
+                // Update scores
+                timeScore = timeScoreBase + Math.floor(elapsedTime * SCORING_CONFIG.TIME_POINTS_PER_SECOND); // Time scoring rate
+                totalScore = timeScore + foodScore;
+                
+                // Check score milestones
+                for (let milestone of SCORING_CONFIG.MILESTONE_BONUSES) {
+                    if (totalScore >= milestone && lastMilestone < milestone) {
+                        console.log('[SCORE] Milestone reached!', milestone.toLocaleString(), 'points - time:', (timeScore/SCORING_CONFIG.TIME_POINTS_PER_SECOND).toFixed(1) + 's', 'food:', foodScore);
+                        lastMilestone = milestone;
+                        break; // Only log one milestone per update
+                    }
+                }
+                
+                document.getElementById('foodScore').textContent = foodScore;
+                document.getElementById('totalScore').textContent = totalScore;
+                
+                // Check for portal activation
+                checkPortalActivation();
+            }
+        }
+
+        function updatePortalTimer() {
+            // Only update portal timer during active gameplay
+            if (!gameRunning || gameState === 'gameOver' || gameState === 'nameEntry') return;
+            if (portal && portalTimer > 0) {
+                portalTimer = Math.max(0, portalDeadline - Date.now());
+                
+                // Warning at 5 seconds
+                if (portalTimer <= PORTAL_CONFIG.WARNING_AT && !portalWarningShown) {
+                    console.log('[PORTAL] WARNING: Only 5 seconds left to enter portal!');
+                    portalWarningShown = true;
+                }
+                
+                if (portalTimer <= 0) {
+                    console.log('[PORTAL] Timer expired - Game Over! Failed to enter portal in time');
+                    gameOver();
+                }
+            }
+        }
+
+        function updateVersionDisplay() {
+            const versionElement = document.getElementById('versionDisplay');
+            versionElement.innerHTML = `Level ${level}<br>${GAME_VERSION} by Agentara`;
+        }
+
+        function updateUnifiedMessage() {
+            const highScoresDiv = document.getElementById('highScores');
+            const nameEntryDiv = document.getElementById('nameEntryDiv');
+            const tipsDiv = document.getElementById('tips');
+            
+            // High scores and tips are always visible on the side
+            highScoresDiv.style.display = 'block';
+            tipsDiv.style.display = 'block';
+            
+            // Update version display with current level
+            updateVersionDisplay();
+            
+            // Hide name entry by default
+            nameEntryDiv.style.display = 'none';
+            
+            if (gameState === 'start') {
+                unifiedMessageElement.textContent = '🎮 Press any key to start...';
+                unifiedMessageElement.className = 'unified-message pulse';
+            } else if (gameState === 'nameEntry') {
+                unifiedMessageElement.textContent = '🎉 Entering high score name...';
+                unifiedMessageElement.className = 'unified-message';
+                nameEntryDiv.style.display = 'block';
+            } else if (gameState === 'gameOver') {
+                unifiedMessageElement.textContent = '💀 Game Over! Press Space to restart';
+                unifiedMessageElement.className = 'unified-message';
+            } else if (gameState === 'playing') {
+                if (startTime === 0) {
+                    // STATE2: Game is in playing state but timer hasn't started (no movement yet)
+                    unifiedMessageElement.textContent = `🕹️ Press arrow keys to start moving`;
+                } else {
+                    if (portal) {
+                        // STATE5: Portal is active - guide user to find and enter it with timer
+                        let timeLeft = Math.ceil(portalTimer / 1000);
+                        unifiedMessageElement.textContent = `🚪 Find the portal to reach level ${level + 1} • ⏰ ${timeLeft}s left!`;
+                    } else if (monsters.length === 0) {
+                        // STATE3: No monsters yet, countdown to first swarm
+                        unifiedMessageElement.textContent = `⏰ First monster swarm in ${Math.ceil(monsterSpawnTimer / 1000)}s`;
+                    } else {
+                        // STATE4: Monsters active, show count, speed, freeze status, and next swarm countdown
+                        let speedIndicator = monsterSpawnTimer <= getWaveInterval() * MONSTER_CONFIG.FAST_WAVE_FRACTION ? " ⚡FAST⚡" : "";
+                        let freezeIndicator = monstersAreFrozen ? " ❄️FROZEN❄️" : "";
+                        unifiedMessageElement.textContent = `🔥 ${monsters.length} monsters active${speedIndicator}${freezeIndicator} • New monsters in ${Math.ceil(monsterSpawnTimer / 1000)}s`;
+                    }
+                }
+                unifiedMessageElement.className = 'unified-message';
+            }
+        }
+
+        // Create purple squares (STATE1)
+        function createStartAnimation() {
+            startSquares = [];
+            
+            // Create 20 purple animated squares
+            for (let i = 0; i < ANIMATION_CONFIG.START_SQUARE_COUNT; i++) {
+                startSquares.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 4, // Random velocity X
+                    vy: (Math.random() - 0.5) * 4, // Random velocity Y
+                    size: Math.random() * 15 + 10, // Size between 10-25
+                    rotation: 0,
+                    rotationSpeed: (Math.random() - 0.5) * 0.15
+                });
+            }
+        }
+
+        function updateStartAnimation() {
+            if (!startAnimation) return;
+            
+            for (let square of startSquares) {
+                // Update position
+                square.x += square.vx;
+                square.y += square.vy;
+                
+                // Bounce off walls
+                if (square.x <= 0 || square.x >= canvas.width) {
+                    square.vx *= -0.9; // Damping
+                    square.x = Math.max(0, Math.min(canvas.width, square.x));
+                }
+                if (square.y <= 0 || square.y >= canvas.height) {
+                    square.vy *= -0.9; // Damping
+                    square.y = Math.max(0, Math.min(canvas.height, square.y));
+                }
+                
+                // Update rotation
+                square.rotation += square.rotationSpeed;
+                
+                // Apply slight gravity
+                square.vy += 0.05;
+                
+                enforceMinimumSquareSpeed(square);
+            }
+        }
+
+        function drawStartAnimation() {
+            if (!startAnimation) return;
+            
+            ctx.save();
+            for (let square of startSquares) {
+                ctx.save();
+                ctx.translate(square.x, square.y);
+                ctx.rotate(square.rotation);
+                ctx.fillStyle = '#800080'; // Purple color like monsters
+                ctx.fillRect(-square.size/2, -square.size/2, square.size, square.size);
+                ctx.restore();
+            }
+            ctx.restore();
+        }
+
+        function updateMonsters() {
+            // Only update monsters during active gameplay
+            if (!gameRunning || gameState === 'gameOver' || gameState === 'nameEntry') return;
+            
+            // Calculate monster speed based on wave timer and freeze effect
+            let moveThreshold;
+            
+            if (monstersAreFrozen) {
+                moveThreshold = MONSTER_CONFIG.FROZEN_MOVE_TICKS;
+                if (monstersAreFast) {
+                    monstersAreFast = false; // Reset when frozen
+                }
+            } else if (monsterSpawnTimer > getWaveInterval() * MONSTER_CONFIG.FAST_WAVE_FRACTION) {
+                moveThreshold = MONSTER_CONFIG.NORMAL_MOVE_TICKS;
+                if (monstersAreFast) {
+                    console.log('[MONSTERS] Speed returned to normal (wave timer above the FAST threshold)');
+                    monstersAreFast = false;
+                }
+            } else {
+                moveThreshold = MONSTER_CONFIG.FAST_MOVE_TICKS;
+                if (!monstersAreFast && monsters.length > 0) {
+                    console.log('[MONSTERS] Speed increased to FAST (wave timer at or below the FAST threshold)');
+                    monstersAreFast = true;
+                }
+            }
+            
+            for (let i = monsters.length - 1; i >= 0; i--) {
+                let monster = monsters[i];
+                monster.moveCounter++;
+                
+                if (monster.moveCounter >= moveThreshold) {
+                    monster.moveCounter = 0;
+                    
+                    monster.x += monster.dx;
+                    monster.y += monster.dy;
+                    
+                    if (monster.x < 0) monster.x = tileCount - 1;
+                    if (monster.x >= tileCount) monster.x = 0;
+                    if (monster.y < 0) monster.y = tileCount - 1;
+                    if (monster.y >= tileCount) monster.y = 0;
+                    
+                    if (Math.random() < MONSTER_CONFIG.DIRECTION_CHANGE_CHANCE) {
+                        monster.dx = Math.random() > 0.5 ? 1 : -1;
+                        monster.dy = Math.random() > 0.5 ? 1 : -1;
+                    }
+                }
+            }
+            
+            // Only run the wave clock if the game has started (startTime is set) and no portal
+            if (startTime > 0 && !portal) {
+                if (waveDeadline === 0) {
+                    waveDeadline = Date.now() + monsterSpawnTimer;
+                }
+                monsterSpawnTimer = waveDeadline - Date.now();
+                
+                if (monsterSpawnTimer <= 0) {
+                    spawnMonsterSwarm();
+                }
+            }
+        }
+
+        function drawGame() {
+            // Always draw background
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (gameState === 'start') {
+                // Only draw start animation
+                drawStartAnimation();
+                return;
+            }
+            
+            // Safety check: clear flash effect if game is over or in name entry
+            if ((gameState === 'gameOver' || gameState === 'nameEntry') && flashEffect) {
+                console.log('[SAFETY] Force clearing flash effect due to game state:', gameState);
+                flashEffect = false;
+                flashTimer = 0;
+                flashDeadline = 0;
+            }
+            
+            if (flashEffect) {
+                // Choose flash color based on type
+                ctx.fillStyle = flashType === 'gold' ? '#FFD700' : '#fff'; // Gold for level-up, white for damage
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#000';
+                for (let segment of snake) {
+                    ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize - 2, gridSize - 2);
+                }
+
+                if (food) {
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    ctx.arc(food.x * gridSize + gridSize/2, food.y * gridSize + gridSize/2, (gridSize - 2)/2, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
+                if (specialFood) {
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    ctx.arc(specialFood.x * gridSize + gridSize/2, specialFood.y * gridSize + gridSize/2, (gridSize - 2)/2, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
+                if (iceFood) {
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    ctx.arc(iceFood.x * gridSize + gridSize/2, iceFood.y * gridSize + gridSize/2, (gridSize - 2)/2, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
+                ctx.fillStyle = '#000';
+                for (let monster of monsters) {
+                    let centerX = monster.x * gridSize + gridSize/2;
+                    let centerY = monster.y * gridSize + gridSize/2;
+                    let size = (gridSize - 2) / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY - size);     // top
+                    ctx.lineTo(centerX + size, centerY);     // right  
+                    ctx.lineTo(centerX, centerY + size);     // bottom
+                    ctx.lineTo(centerX - size, centerY);     // left
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            } else {
+                ctx.fillStyle = '#0f0';
+                for (let segment of snake) {
+                    ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize - 2, gridSize - 2);
+                }
+
+                if (food) {
+                    ctx.fillStyle = '#f00';
+                    ctx.beginPath();
+                    ctx.arc(food.x * gridSize + gridSize/2, food.y * gridSize + gridSize/2, (gridSize - 2)/2, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
+                if (specialFood) {
+                    ctx.fillStyle = '#ffff00'; // Bright yellow
+                    ctx.beginPath();
+                    ctx.arc(specialFood.x * gridSize + gridSize/2, specialFood.y * gridSize + gridSize/2, (gridSize - 2)/2, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
+                if (iceFood) {
+                    ctx.fillStyle = '#00ffff'; // Bright cyan (ICE color)
+                    ctx.beginPath();
+                    ctx.arc(iceFood.x * gridSize + gridSize/2, iceFood.y * gridSize + gridSize/2, (gridSize - 2)/2, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
+                if (portal) {
+                    // Draw portal wall with white borders (no fill)
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    
+                    // Draw all wall blocks as white border rectangles
+                    for (let wallBlock of portal.wallBlocks) {
+                        // Skip gateway positions (create the opening)
+                        let isGateway = portal.gatewayBlocks.some(gateway => 
+                            gateway.x === wallBlock.x && gateway.y === wallBlock.y
+                        );
+                        
+                        if (!isGateway) {
+                            ctx.strokeRect(wallBlock.x * gridSize + 1, wallBlock.y * gridSize + 1, gridSize - 2, gridSize - 2);
+                        }
+                    }
+                }
+
+                ctx.fillStyle = '#800080';
+                for (let monster of monsters) {
+                    let centerX = monster.x * gridSize + gridSize/2;
+                    let centerY = monster.y * gridSize + gridSize/2;
+                    let size = (gridSize - 2) / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY - size);     // top
+                    ctx.lineTo(centerX + size, centerY);     // right  
+                    ctx.lineTo(centerX, centerY + size);     // bottom
+                    ctx.lineTo(centerX - size, centerY);     // left
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+            
+            // Draw game over animation on top of everything
+            drawGameOverAnimation();
+        }
+
+        // ===========================================
+        // MOVEMENT TRACKING (for collision debugging)
+        // ===========================================
+        
+        function recordMovement(fromX, fromY, toX, toY, dirX, dirY) {
+            const directionNames = {
+                '0,-1': 'UP',
+                '0,1': 'DOWN', 
+                '-1,0': 'LEFT',
+                '1,0': 'RIGHT'
+            };
+            
+            const movement = {
+                from: {x: fromX, y: fromY},
+                to: {x: toX, y: toY},
+                direction: directionNames[dirX + ',' + dirY] || `(${dirX},${dirY})`,
+                snakeLength: snake.length,
+                timestamp: Math.floor((Date.now() - startTime) / 1000 * 10) / 10 // Time in 0.1s precision
+            };
+            
+            movementHistory.push(movement);
+            
+            // Keep only last 10 movements
+            if (movementHistory.length > 10) {
+                movementHistory.shift();
+            }
+        }
+        
+        function getMovementSummary() {
+            if (movementHistory.length === 0) return 'No movement history';
+            
+            // Show current snake state
+            let summary = `Snake length: ${snake.length}, segments: [`;
+            for (let i = 0; i < snake.length; i++) {
+                summary += `(${snake[i].x},${snake[i].y})`;
+                if (i < snake.length - 1) summary += ', ';
+            }
+            summary += ']. Last 3 moves: ';
+            
+            // Show only last 3 movements to keep it concise
+            const recent = movementHistory.slice(-3);
+            
+            for (let i = 0; i < recent.length; i++) {
+                const move = recent[i];
+                summary += `${move.direction} to (${move.to.x},${move.to.y})`;
+                if (i < recent.length - 1) summary += ' → ';
+            }
+            
+            return summary;
+        }
+
+        // ===========================================
+        // CORE GAME LOGIC (STATE3-5)
+        // ===========================================
+        
+        // Main game update (STATE3: no monsters, STATE4: with monsters, STATE5: portal only)
+        function updateGame() {
+            if (!gameRunning || (dx === 0 && dy === 0)) return;
+            
+            // Safety check - if game is already ending, don't process
+            if (gameState === 'gameOver' || gameState === 'nameEntry') {
+                return;
+            }
+            
+            // Safety check - ensure snake array is valid
+            if (!snake || snake.length === 0 || !snake[0]) {
+                console.log('[SAFETY] Snake array corrupted, calling gameOver():', snake);
+                gameOver();
+                return;
+            }
+            
+            // Start timer on first movement
+            if (startTime === 0) {
+                startTime = Date.now();
+            }
+
+            const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+
+            if (head.x < 0) head.x = tileCount - 1;
+            if (head.x >= tileCount) head.x = 0;
+            if (head.y < 0) head.y = tileCount - 1;
+            if (head.y >= tileCount) head.y = 0;
+            
+            // Record this movement for debugging
+            recordMovement(snake[0].x, snake[0].y, head.x, head.y, dx, dy);
+
+            // Check self-collision with any body segment (including neck)
+            for (let segment of snake) {
+                if (head.x === segment.x && head.y === segment.y) {
+                    console.log('[COLLISION] Self-collision detected at (' + head.x + ',' + head.y + ') - ' + getMovementSummary());
+                    gameOver();
+                    return;
+                }
+            }
+
+            // Check ALL monster collisions in one pass to prevent conflicts
+            let headCollision = false;
+            let bodyCollisionIndex = -1;
+            let tailCut = false;
+            
+            
+            // First, check if head will collide with any monster
+            for (let monster of monsters) {
+                if (head.x === monster.x && head.y === monster.y) {
+                    headCollision = true;
+                    console.log('[STATE4→6] HEAD COLLISION detected - head:', head.x, head.y, 'monster:', monster.x, monster.y);
+                    debugLog('[STATE4→6] This should trigger death, NOT body collision');
+                    break;
+                }
+            }
+            
+            // If head collision, immediate death - don't add head to snake
+            if (headCollision) {
+                console.log('[COLLISION] Monster head collision at (' + head.x + ',' + head.y + ') - ' + getMovementSummary());
+                gameOver();
+                return;
+            }
+            
+            // No head collision, safe to add head to snake
+            snake.unshift(head);
+            playMoveSound();
+            
+            // Now check body collisions (excluding the head we just added at index 0)
+            for (let i = 1; i < snake.length; i++) {
+                let segment = snake[i];
+                for (let monster of monsters) {
+                    if (segment.x === monster.x && segment.y === monster.y) {
+                        if (bodyCollisionIndex === -1) {  // Only record first collision
+                            bodyCollisionIndex = i;
+                            console.log('[STATE4] BODY COLLISION detected - segment', i, 'pos:', segment.x, segment.y, 'monster:', monster.x, monster.y);
+                        }
+                    }
+                }
+            }
+            
+            // Process body collision if found
+            if (bodyCollisionIndex !== -1) {
+                debugLog('[STATE4] Processing body collision - cutting tail at segment', bodyCollisionIndex, 'gameRunning:', gameRunning);
+                debugLog('[STATE4] Snake before cut:', snake.length, 'segments');
+                playCutSound();
+                triggerFlash();
+                snake = snake.slice(0, bodyCollisionIndex);
+                tailCut = true; // The cut already discarded the tail; movement must not pop again
+                debugLog('[STATE4] Snake after cut:', snake.length, 'segments');
+                
+                // Safety check: if snake becomes empty, game over
+                if (snake.length === 0) {
+                    console.log('[STATE4→6] Snake array empty after cut - Game Over');
+                    gameOver();
+                    return;
+                }
+                
+                // Log if snake is cut down to just head (length=1) - this is valid and should continue playing
+                if (snake.length === 1) {
+                    debugLog('[STATE4] Snake cut down to head only (length=1) - continuing game');
+                }
+                
+                debugLog('[STATE4] Cut completed successfully, continuing game loop');
+            }
+
+            // Check portal collision - gateway vs wall
+            if (portal) {
+                // Check if snake hits gateway blocks (successful portal entry)
+                for (let gatewayBlock of portal.gatewayBlocks) {
+                    if (head.x === gatewayBlock.x && head.y === gatewayBlock.y) {
+                        enterPortal();
+                        return;
+                    }
+                }
+                
+                // Check if snake hits wall blocks (death by wall collision)
+                for (let wallBlock of portal.wallBlocks) {
+                    // Skip gateway positions (already handled above)
+                    let isGateway = portal.gatewayBlocks.some(gateway => 
+                        gateway.x === wallBlock.x && gateway.y === wallBlock.y
+                    );
+                    
+                    if (!isGateway && head.x === wallBlock.x && head.y === wallBlock.y) {
+                        console.log('[COLLISION] Hit portal wall at (' + head.x + ',' + head.y + ') - must aim for gateway!');
+                        gameOver();
+                        return;
+                    }
+                }
+            }
+            
+            if (food && head.x === food.x && head.y === food.y) {
+                playEatSound();
+                foodScore += SCORING_CONFIG.RED_APPLE; // Red apple points
+                console.log('[FOOD] Red apple eaten - +' + SCORING_CONFIG.RED_APPLE + ' points, total food score:', foodScore);
+                if (!portal) { // Only generate new food if no portal is active
+                    generateFood();
+                }
+            } else if (specialFood && head.x === specialFood.x && head.y === specialFood.y) {
+                playBonusSound();
+                // Double the snake size - use length BEFORE head was added
+                let originalLength = snake.length - 1; // Length before head was added
+                let targetLength = originalLength * 2; // True double of original length
+                let doublingSegments = targetLength - snake.length; // Additional segments for doubling
+                let totalSegmentsAdded = originalLength; // Head + doubling segments = original length
+                let pointsAdded = SCORING_CONFIG.YELLOW_APPLE_PER_SEGMENT * totalSegmentsAdded; // Yellow apple points per segment
+                foodScore += pointsAdded;
+                
+                console.log('[FOOD] Yellow apple eaten - snake doubled from', originalLength, 'to', targetLength, 'segments, +' + pointsAdded, 'points');
+                
+                for (let i = 0; i < doublingSegments; i++) {
+                    // Add segments at the tail
+                    let lastSegment = snake[snake.length - 1];
+                    snake.push({x: lastSegment.x, y: lastSegment.y});
+                }
+                specialFood = null;
+                specialFoodTimer = 0;
+                specialFoodDeadline = 0;
+            } else if (iceFood && head.x === iceFood.x && head.y === iceFood.y) {
+                playBonusSound();
+                // ICE apple effect: freeze monsters for remainder of current wave
+                monstersAreFrozen = true;
+                freezeTimer = monsterSpawnTimer; // Freeze for remainder of current wave
+                freezeDeadline = Date.now() + freezeTimer;
+                foodScore += SCORING_CONFIG.ICE_APPLE; // ICE apple flat bonus
+                
+                console.log('[FOOD] ICE apple eaten - +' + SCORING_CONFIG.ICE_APPLE + ' points, monsters frozen for', Math.ceil(freezeTimer / 1000), 'seconds');
+                iceFood = null;
+                iceFoodTimer = 0;
+                iceFoodDeadline = 0;
+            } else if (!tailCut) {
+                snake.pop();
+            }
+            
+        }
+
+        // ===========================================
+        // GAME STATE TRANSITIONS
+        // ===========================================
+        
+        // Transition to STATE6 (Game Over)
+        function gameOver() {
+            console.log('[GAME] Game Over - final score:', timeScore + foodScore, 'time:', (timeScore/SCORING_CONFIG.TIME_POINTS_PER_SECOND).toFixed(1) + 's', 'food:', foodScore);
+            gameRunning = false;
+            playDeathSound();
+            
+            // Clear flash effect to prevent white screen
+            flashEffect = false;
+            flashTimer = 0;
+            flashDeadline = 0;
+            
+            // Calculate final score
+            if (startTime > 0) {
+                // Use the already calculated timeScore from updateTimer() to avoid discrepancy
+                totalScore = timeScore + foodScore;
+                debugLog('[STATE6] Final score breakdown: timeScore =', timeScore, 'foodScore =', foodScore, 'totalScore =', totalScore);
+                
+                // Check if it's a high score
+                if (checkHighScore(totalScore)) {
+                    gameState = 'nameEntry';
+                    nameEntry = '';
+                    updateNameInput();
+                } else {
+                    gameState = 'gameOver';
+                }
+            } else {
+                gameState = 'gameOver';
+            }
+            
+            createGameOverAnimation();
+        }
+
+        // Transition to STATE2 (Static Pre-Game)
+        function startGame() {
+            console.log('[GAME] Game started - entering STATE2 (pre-game)');
+            gameState = 'playing';
+            startAnimation = false;
+            gameRunning = true;
+            selectRandomTip();
+            generateFood();
+            
+            // Initialize audio safely (non-blocking for iOS)
+            try {
+                initAudio();
+            } catch(e) {
+                console.log('[SOUND] Audio initialization failed, continuing without sound:', e);
+            }
+        }
+
+        // Reset to STATE2 (after game over)
+        function resetGame() {
+            console.log('[GAME] Game reset - starting new game');
+            snake = [{x: 10, y: 10}];
+            dx = 0;
+            dy = 0;
+            movementHistory = []; // Clear movement history
+            startTime = 0;
+            document.getElementById('timeDisplay').textContent = '0.00s';
+            timeScore = 0;
+            timeScoreBase = 0;
+            foodScore = 0;
+            totalScore = 0;
+            levelStartScore = 0;
+            lastMilestone = 0; // Reset milestone tracking
+            document.getElementById('foodScore').textContent = '0';
+            document.getElementById('totalScore').textContent = '0';
+            gameRunning = true;
+            gameState = 'playing';
+            monsters = [];
+            portal = null;
+            portalTimer = 0;
+            portalDeadline = 0;
+            portalWarningShown = false;
+            level = 1;
+            swarmRound = 1;
+            monsterSpawnTimer = getWaveInterval(); // Will be 30000 for level 1
+            waveDeadline = 0;
+            flashEffect = false;
+            flashTimer = 0;
+            flashDeadline = 0;
+            specialFood = null;
+            specialFoodTimer = 0;
+            specialFoodDeadline = 0;
+            iceFood = null;
+            iceFoodTimer = 0;
+            iceFoodDeadline = 0;
+            monstersAreFrozen = false;
+            freezeTimer = 0;
+            freezeDeadline = 0;
+            gameOverAnimation = false;
+            animatedSquares = [];
+            selectRandomTip();
+            generateFood();
+        }
+
+        // Transition to STATE1 (Start Screen)
+        function showStartScreen() {
+            gameState = 'start';
+            startAnimation = true;
+            gameRunning = false;
+            showIntroTip();
+            createStartAnimation();
+        }
+
+        // A monster can move onto the head after the snake has moved - the overlap still kills
+        function checkMonsterHeadCollision() {
+            if (!gameRunning || gameState === 'gameOver' || gameState === 'nameEntry') return;
+            if (!snake || snake.length === 0) return;
+            
+            const head = snake[0];
+            for (const monster of monsters) {
+                if (monster.x === head.x && monster.y === head.y) {
+                    console.log('[COLLISION] Monster moved onto the head at (' + head.x + ',' + head.y + ') - Game Over');
+                    gameOver();
+                    return;
+                }
+            }
+        }
+        
+        // ===========================================
+        // MAIN GAME LOOP (manages all 7 states)
+        // ===========================================
+        
+        let hiddenAt = 0;
+        
+        // Shift every wall-clock deadline by the time the tab spent hidden
+        function shiftDeadlines(delta) {
+            if (startTime > 0) startTime += delta;
+            if (flashDeadline > 0) flashDeadline += delta;
+            if (portalDeadline > 0) portalDeadline += delta;
+            if (waveDeadline > 0) waveDeadline += delta;
+            if (freezeDeadline > 0) freezeDeadline += delta;
+            if (specialFoodDeadline > 0) specialFoodDeadline += delta;
+            if (iceFoodDeadline > 0) iceFoodDeadline += delta;
+        }
+        
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                hiddenAt = Date.now();
+            } else if (hiddenAt > 0) {
+                shiftDeadlines(Date.now() - hiddenAt);
+                hiddenAt = 0;
+            }
+        });
+        
+        function gameLoop() {
+            if (document.visibilityState === 'hidden') return; // Paused while the tab is hidden
+            
+            // Debug: Track game loop execution
+            if (flashEffect) {
+                debugLog('[GAME LOOP] Flash active, timer:', flashTimer);
+            }
+            
+            if (gameState === 'start') {              // STATE1
+                updateStartAnimation();
+            } else {                                  // STATE2-7
+                updateGame();                         // STATE3-5 (snake movement)
+                updateMonsters();                     // STATE4 only (monster movement/spawning)  
+                checkMonsterHeadCollision();          // STATE4 (a monster may have landed on the head)
+                updateSpecialFood();                  // STATE3-4 (yellow apple spawning)
+                updateFlash();                        // STATE4 (flash effects)
+                updateGameOverAnimation();            // STATE6 (bouncing squares)
+                updateTimer();                        // STATE3-5 (scoring)
+                updatePortalTimer();                  // STATE5 (portal countdown)
+            }
+            updateUnifiedMessage();                   // All states (message updates)
+            drawGame();                               // All states (rendering)
+        }
+
+        // ===========================================
+        // INPUT HANDLING (different behavior per state)
+        // ===========================================
+        
+        // Predicts a move that would hit the neck (segment 1), regardless of current direction
+        function wouldHitNeck(newDx, newDy) {
+            if (snake.length <= 1) return false; // Can't hit neck if only head exists
+            
+            const head = snake[0];
+            const neck = snake[1]; // Segment 1 is always the neck
+            const newHeadX = head.x + newDx;
+            const newHeadY = head.y + newDy;
+            
+            // Direct position check - prevents false collision deaths
+            return newHeadX === neck.x && newHeadY === neck.y;
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (['Space', 'Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                e.preventDefault();                  // Keep gameplay keys from scrolling the page
+            }
+            
+            if (gameState === 'start') {             // STATE1: Any key starts game
+                startGame();                         // STATE1→STATE2 transition
+                return;
+            }
+            
+            if (gameState === 'nameEntry') {         // STATE7: Name entry controls
+                if (e.code === 'Enter' && nameEntry.length >= 1) {
+                    addHighScore(nameEntry, totalScore);
+                    gameState = 'gameOver';
+                    return;
+                } else if (e.code === 'Space') {
+                    gameState = 'gameOver';          // Decline entry without saving
+                    return;
+                } else if (e.code === 'Backspace' && nameEntry.length > 0) {
+                    nameEntry = [...nameEntry].slice(0, -1).join('');
+                    updateNameInput();
+                    return;
+                } else if ([...nameEntry].length < HIGH_SCORE_CONFIG.MAX_NAME_LENGTH && /^\S$/u.test(e.key)) {
+                    nameEntry += e.key.toUpperCase();
+                    updateNameInput();
+                    return;
+                }
+                return;
+            }
+            
+            if (!gameRunning && e.code === 'Space') { // STATE6: Space to restart
+                resetGame();                           // STATE6→STATE2 transition
+                return;
+            }
+
+            if (!gameRunning) return;
+
+            // STATE2-5: Arrow key controls (STATE2→3 on first move)
+            switch(e.code) {
+                case 'ArrowUp':
+                    if (!wouldHitNeck(0, -1)) {
+                        debugLog('[INPUT] UP accepted - snake length:', snake.length, 'dx:', dx, 'dy:', dy);
+                        dx = 0;
+                        dy = -1;
+                    } else {
+                        debugLog('[INPUT] UP blocked - would hit neck at (' + snake[1].x + ',' + snake[1].y + ')');
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (!wouldHitNeck(0, 1)) {
+                        debugLog('[INPUT] DOWN accepted - snake length:', snake.length, 'dx:', dx, 'dy:', dy);
+                        dx = 0;
+                        dy = 1;
+                    } else {
+                        debugLog('[INPUT] DOWN blocked - would hit neck at (' + snake[1].x + ',' + snake[1].y + ')');
+                    }
+                    break;
+                case 'ArrowLeft':
+                    if (!wouldHitNeck(-1, 0)) {
+                        debugLog('[INPUT] LEFT accepted - snake length:', snake.length, 'dx:', dx, 'dy:', dy);
+                        dx = -1;
+                        dy = 0;
+                    } else {
+                        debugLog('[INPUT] LEFT blocked - would hit neck at (' + snake[1].x + ',' + snake[1].y + ')');
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (!wouldHitNeck(1, 0)) {
+                        debugLog('[INPUT] RIGHT accepted - snake length:', snake.length, 'dx:', dx, 'dy:', dy);
+                        dx = 1;
+                        dy = 0;
+                    } else {
+                        debugLog('[INPUT] RIGHT blocked - would hit neck at (' + snake[1].x + ',' + snake[1].y + ')');
+                    }
+                    break;
+            }
+        });
+
+        // Touch: swipe steers, tap starts/restarts/declines
+        let touchStartPosition = null;
+        
+        function handleTouchTap() {
+            if (gameState === 'start') {             // STATE1→STATE2
+                startGame();
+            } else if (gameState === 'nameEntry') {  // STATE7: decline without saving
+                gameState = 'gameOver';
+            } else if (gameState === 'gameOver' && !gameRunning) { // STATE6→STATE2
+                resetGame();
+            }
+        }
+        
+        function handleTouchSwipe(deltaX, deltaY) {
+            if (gameState !== 'playing' || !gameRunning) return;
+            
+            if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+                if (deltaX > 0 && !wouldHitNeck(1, 0)) { dx = 1; dy = 0; }
+                else if (deltaX < 0 && !wouldHitNeck(-1, 0)) { dx = -1; dy = 0; }
+            } else {
+                if (deltaY > 0 && !wouldHitNeck(0, 1)) { dx = 0; dy = 1; }
+                else if (deltaY < 0 && !wouldHitNeck(0, -1)) { dx = 0; dy = -1; }
+            }
+        }
+        
+        canvas.addEventListener('touchstart', (e) => {
+            const touch = e.changedTouches[0];
+            touchStartPosition = { x: touch.clientX, y: touch.clientY };
+            e.preventDefault();
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', (e) => {
+            if (!touchStartPosition) return;
+            const touch = e.changedTouches[0];
+            const deltaX = touch.clientX - touchStartPosition.x;
+            const deltaY = touch.clientY - touchStartPosition.y;
+            touchStartPosition = null;
+            e.preventDefault();
+            
+            if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < TOUCH_CONFIG.SWIPE_MIN_DISTANCE) {
+                handleTouchTap();
+            } else {
+                handleTouchSwipe(deltaX, deltaY);
+            }
+        }, { passive: false });
+        
+        canvas.addEventListener('touchcancel', () => {
+            touchStartPosition = null;
+        });
+
+        // ===========================================
+        // GAME INITIALIZATION
+        // ===========================================
+        
+        console.log('[GAME] Game loaded - Serpent Swarm ' + GAME_VERSION + ' initialized');
+        loadHighScores();        // Load saved high scores
+        displayHighScores();     // Display high scores initially
+        showIntroTip();          // Set STATE1 tip
+        showStartScreen();       // Enter STATE1
+        console.log('[GAME] Game loop started - 120ms intervals');
+        setInterval(gameLoop, 120); // 120ms = 20% faster than standard (150ms)
+    </script>
+</body>
+</html>
