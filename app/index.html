@@ -401,6 +401,68 @@
                 transform: translate(-50%, -50%) scale(1);
             }
         }
+        
+        /* Mobile (Strata breakpoint, 768px): board first, panels stacked below */
+        body.mobile-layout {
+            padding: 8px 0 calc(16px + env(safe-area-inset-bottom));
+            overflow: auto;
+        }
+        body.mobile-layout .main-layout {
+            flex-direction: column;
+            gap: 14px;
+            transform: none;
+            width: 100%;
+        }
+        body.mobile-layout .game-container {
+            order: 1;
+            width: 100%;
+        }
+        body.mobile-layout .sidebar {
+            order: 2;
+        }
+        body.mobile-layout .left-sidebar {
+            order: 3;
+        }
+        body.mobile-layout .left-sidebar,
+        body.mobile-layout .sidebar {
+            width: 92vw;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 12px;
+        }
+        body.mobile-layout .title-container {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+        }
+        body.mobile-layout .game-title {
+            font-size: 26px;
+        }
+        body.mobile-layout .unified-message {
+            font-size: 15px;
+            margin: 10px 0;
+            white-space: normal;
+        }
+        body.mobile-layout .game-canvas-container {
+            width: fit-content;
+            max-width: 92vw;
+            margin: 0 auto;
+        }
+        body.mobile-layout canvas {
+            width: min(92vw, 60vh);
+            width: min(92vw, 60dvh);
+            height: auto;
+        }
+        body.mobile-layout .score,
+        body.mobile-layout .high-scores,
+        body.mobile-layout .name-entry,
+        body.mobile-layout .tips,
+        body.mobile-layout .legend {
+            width: 100%;
+            height: auto;
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
@@ -523,7 +585,8 @@
             WIDTH_BUFFER: 20,        // Viewport width held back from the layout
             HEIGHT_BUFFER: 30,       // Viewport height held back from the layout
             BODY_HEIGHT_BUFFER: 20,  // Extra body height beyond the scaled layout
-            BODY_VIEWPORT_MARGIN: 5  // Minimum gap between body and viewport
+            BODY_VIEWPORT_MARGIN: 5, // Minimum gap between body and viewport
+            MOBILE_MAX_WIDTH: 768    // Strata phone/desktop breakpoint
         };
 
         // Logging configuration - verbose internals stay silent unless explicitly enabled
@@ -539,9 +602,23 @@
         // RESPONSIVE SCALING SYSTEM
         // ===========================================
         
+        let mobileLayout = false;
+        
         function updateGameScale() {
             const mainLayout = document.querySelector('.main-layout');
             const body = document.body;
+            
+            mobileLayout = window.matchMedia('(max-width: ' + SCALE_CONFIG.MOBILE_MAX_WIDTH + 'px)').matches;
+            body.className = mobileLayout ? 'mobile-layout' : '';
+            
+            if (mobileLayout) {
+                // Phones get the board at full width and panels below; nothing is scaled
+                mainLayout.style.transform = 'none';
+                body.style.height = '';
+                body.style.minHeight = '';
+                body.style.alignItems = '';
+                return;
+            }
             
             // Measure the real layout; the transform does not affect layout size
             const totalWidth = mainLayout.offsetWidth || canvas.width;
@@ -595,7 +672,7 @@
         // ===========================================
         
         // Game version - single source of truth for version number
-        const GAME_VERSION = 'V1.1';
+        const GAME_VERSION = 'V1.2';
         
         // Portal threshold configuration - single source of truth for level progression
         const PORTAL_CONFIG = {
@@ -1731,19 +1808,19 @@
             nameEntryDiv.style.display = 'none';
             
             if (gameState === 'start') {
-                unifiedMessageElement.textContent = '🎮 Press any key to start...';
+                unifiedMessageElement.textContent = mobileLayout ? '🎮 Tap to start...' : '🎮 Press any key to start...';
                 unifiedMessageElement.className = 'unified-message pulse';
             } else if (gameState === 'nameEntry') {
                 unifiedMessageElement.textContent = '🎉 Entering high score name...';
                 unifiedMessageElement.className = 'unified-message';
                 nameEntryDiv.style.display = 'block';
             } else if (gameState === 'gameOver') {
-                unifiedMessageElement.textContent = '💀 Game Over! Press Space to restart';
+                unifiedMessageElement.textContent = mobileLayout ? '💀 Game Over! Tap to restart' : '💀 Game Over! Press Space to restart';
                 unifiedMessageElement.className = 'unified-message';
             } else if (gameState === 'playing') {
                 if (startTime === 0) {
                     // STATE2: Game is in playing state but timer hasn't started (no movement yet)
-                    unifiedMessageElement.textContent = `🕹️ Press arrow keys to start moving`;
+                    unifiedMessageElement.textContent = mobileLayout ? `🕹️ Swipe to start moving` : `🕹️ Press arrow keys to start moving`;
                 } else {
                     if (portal) {
                         // STATE5: Portal is active - guide user to find and enter it with timer

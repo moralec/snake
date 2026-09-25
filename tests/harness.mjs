@@ -79,7 +79,7 @@ const REAL_IDS = [
     'tips', 'totalScore', 'unifiedMessage', 'versionDisplay'
 ];
 
-function loadGame({ now = 1700000000000, storage = {}, storageThrows = false, reducedMotion = false, layout = null } = {}) {
+function loadGame({ now = 1700000000000, storage = {}, storageThrows = false, reducedMotion = false, layout = null, viewport = { width: 1400, height: 1000 } } = {}) {
     const clock = { value: now };
     const logs = [];
     const elements = {};
@@ -157,17 +157,18 @@ function loadGame({ now = 1700000000000, storage = {}, storageThrows = false, re
                 listeners[type] = fn;
                 if (type === 'keydown') sandbox.__keydown = fn;
             },
-            body: { style: {} }
+            body: { style: {}, className: '' }
         },
         window: {
-            innerWidth: 1400, innerHeight: 1000,
+            innerWidth: viewport.width, innerHeight: viewport.height,
             addEventListener: () => {},
-            matchMedia: query => ({
-                matches: reducedMotion && query.includes('prefers-reduced-motion'),
-                media: query,
-                addEventListener: () => {},
-                removeEventListener: () => {}
-            }),
+            matchMedia: query => {
+                const maxWidth = query.match(/max-width:\s*(\d+)px/);
+                const matches = query.includes('prefers-reduced-motion')
+                    ? reducedMotion
+                    : maxWidth ? viewport.width <= Number(maxWidth[1]) : false;
+                return { matches, media: query, addEventListener: () => {}, removeEventListener: () => {} };
+            },
             AudioContext: undefined,
             webkitAudioContext: undefined
         },
@@ -551,6 +552,18 @@ test('T25b scaling measures the real layout instead of a hardcoded size', ({ loa
     const scale = parseFloat(transform.slice('scale('.length));
     const expected = Math.min((1400 - 20) / 2000, (1000 - 30) / 1000, 1);
     assert.ok(Math.abs(scale - expected) < 0.0001, `scale ${scale} does not match the measured layout (${expected})`);
+});
+
+test('T27 phone viewports go board-first without scaling the desktop layout', ({ loadGame }) => {
+    const g = loadGame({ viewport: { width: 390, height: 844 } });
+    assert.equal(g.sandbox.document.body.className, 'mobile-layout', 'the mobile layout class was not applied at load');
+    assert.equal(g.mainLayout.style.transform, 'none', 'the desktop layout was scaled on a phone viewport');
+    g.t.updateUnifiedMessage();
+    assert.ok(g.elements.unifiedMessage.textContent.includes('Tap'),
+        `mobile start message should say Tap: ${g.elements.unifiedMessage.textContent}`);
+    const desktop = loadGame();
+    assert.equal(desktop.sandbox.document.body.className, '', 'the desktop viewport got the mobile class');
+    assert.ok(desktop.mainLayout.style.transform.startsWith('scale('), 'the desktop viewport did not scale');
 });
 
 // === HIGH SCORES ===
